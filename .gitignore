@@ -1,10 +1,9 @@
 *.xcodeproj
-example*/bin/data
-example*/bin/libs/
-example*/bin/*
-!example*/bin/data/.gitkeep
-!example*/bin/data/*.png
 
+*.exe
+*.dll
+*.lib
+*.exp
 
 #########################
 # openFrameworks patterns
