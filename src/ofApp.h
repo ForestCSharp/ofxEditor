@@ -93,6 +93,9 @@ public:
 	//Airship
 	ofxAssimpModelLoader Airship;
 
+	//Property Window
+	PropertyWindow PropWindow;
+
 	std::map<int, bool> KeyPressMap;
 	inline const bool IsKeyPressed(const int Key) { return KeyPressMap[Key]; }
 };

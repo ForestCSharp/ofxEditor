@@ -79,7 +79,6 @@ void ofApp::setup()
 	BulletGround.setProperties(.25, .95);
 	BulletGround.add();
 
-	//TODO Move Post Process code into it's own file
 	string fragShaderSrc = STRINGIFY(
 		uniform sampler2D InputTexture;
 		uniform vec2 resolution;
@@ -170,19 +169,11 @@ void ofApp::setup()
 	PostProcessEffect.SetFragmentShader(oss.str());
 }
 
-bool doSetTheme = false;
 //--------------------------------------------------------------
 void ofApp::update() {
 	BulletBox.applyCentralForce(ofVec3f(0, -30, 0));
 	BulletBox.applyTorque(ofVec3f(0, 0, -100.0f));
 	BulletWorld.update();
-
-	if (doSetTheme)
-	{
-		doSetTheme = false;
-		imgui.setTheme(new ThemeTest());
-
-	}
 }
 
 float airships_x = 10;
@@ -239,49 +230,37 @@ void ofApp::draw() {
 	//In between gui.begin() and gui.end() you can use ImGui as you would anywhere else
 
 	{
-		ImGui::Begin("Simple Window");
-		ImGui::Checkbox("Enable Post-Processing", &enable_post_process);
-		ImGui::ColorEdit4("Base Color", BaseColor.v);
-		ImGui::SliderFloat("Metallic", &Metallic, 0.0f, 1.0f);
-		ImGui::SliderFloat("Roughness", &Roughness, 0.0f, 1.0f);
 
-		ImGui::SliderFloat("Airships X", &airships_x, 1.0f, 20.0f);
-		ImGui::SliderFloat("Airships Z", &airships_z, 1.0f, 20.0f);
+		AggregateProperty AggProp(std::string("AggregateProperty"));
 
-		static int IntVal = 4;
-		static float FloatVal = 3.434f;
-		static bool BoolVal = true;
-		static std::string StringVal("Woah a String");
-		static ofFloatColor ColorVal;
-		static ofVec3f VecVal;
+		AggProp.AddProperty(std::string("Enable Post-Processing"), &enable_post_process);
+		AggProp.AddProperty(std::string("Color"), &BaseColor);
+		AggProp.AddProperty(std::string("Metallic"), &Metallic);
+		AggProp.AddProperty(std::string("Roughness"), &Roughness);
+		AggProp.AddProperty(std::string("AirShipsX"), &airships_x);
+		AggProp.AddProperty(std::string("AirShipsZ"), &airships_z);
 
-		AggregateProperty AggProp(std::string("AggProp"));
-		AggProp.AddProperty(std::string("IntProp"), &IntVal);
-		AggProp.AddProperty(std::string("FloatProp"), &FloatVal);
-		AggProp.AddProperty(std::string("BoolProp"), &BoolVal);
-		AggProp.AddProperty(std::string("StringProp"), &StringVal);
-		AggProp.AddProperty(std::string("ColorProp"), &ColorVal);
-		AggProp.AddProperty(std::string("Vec3fProp"), &VecVal);
+		//TODO: Prevent infinite recursion?
+		AggregateProperty InnerAggregate(std::string("InnerAggregate"));
+		AggProp.AddProperty(std::string("InnerAggregate"), &InnerAggregate);
+		static float InnerFloat = 2.0f;
+		InnerAggregate.AddProperty(std::string("InnerFloat"), &InnerFloat);
 
-		AggProp.RenderUI();
+		//This actually works, as they start collapsed by default!
+		AggProp.AddProperty(std::string("CyclicalReference"), &AggProp);
 
-		bool pressed = ImGui::ImageButton((ImTextureID)(uintptr_t)imageButtonID, ImVec2(200, 200));
-
-		if (ImGui::Button("Test Window"))
-		{
-			show_test_window = !show_test_window;
-		}
-
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-
-		ImGui::End();
-
+		PropWindow.Selected = &AggProp;
+		PropWindow.Render();
+		
+		//bool pressed = ImGui::ImageButton((ImTextureID)(uintptr_t)imageButtonID, ImVec2(200, 200));
 
 		//Testing Pie Menu
 		if (bShowPieMenu)
 		{
 			ImGui::OpenPopup("PieMenu");
 		}
+
+		//TODO: Pass Keycode instead of mousebutton into pie
 
 		if (BeginPiePopup("PieMenu", 1))
 		{
@@ -305,12 +284,6 @@ void ofApp::draw() {
 
 			EndPiePopup();
 		}
-	}
-
-	// 3. Show the ImGui test window. Most of the sample code is in ImGui::ShowTestWindow()
-	if (show_test_window)
-	{
-		ImGui::ShowTestWindow();
 	}
 
 	//required to call this at end
@@ -388,7 +361,13 @@ void ofApp::keyPressed(int key) {
 	else if (key == 'r') {
 		mCurrentGizmoOperation = ImGuizmo::SCALE;
 	}
+	else if (key == ' ') {
+		bShowPieMenu = true;
+	}
 	else if (key == '1') {
+		PropWindow.bOpen = !PropWindow.bOpen;
+	}
+	else if (key == '=') {
 		ofToggleFullscreen();
 	}
 
@@ -398,6 +377,10 @@ void ofApp::keyPressed(int key) {
 //--------------------------------------------------------------
 void ofApp::keyReleased(int key) 
 {
+	if (key == ' ') {
+		bShowPieMenu = false;
+	}
+
 	KeyPressMap[key] = false;
 }
 

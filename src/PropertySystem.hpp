@@ -30,8 +30,9 @@ public:
 
 	Property(std::string& InName, T* InValue) : AbstractProperty(InName), Value(InValue) {}
 
+	//TODO: Break these out into free template functions (w/ specialization), default does nothing
 	virtual inline void RenderUI() override
-	{ 
+	{
 		const std::type_info& TypeID = typeid(*Value);
 
 		if (TypeID == typeid(bool))
@@ -72,6 +73,11 @@ public:
 			ofFloatColor* FloatColorPtr = (ofFloatColor*)Value;
 			ImGui::ColorEdit4(GetName().c_str(), FloatColorPtr->v);
 		}
+		else if (TypeID == typeid(AggregateProperty))
+		{
+			AggregateProperty* AggregatePtr = (AggregateProperty*)Value;
+			AggregatePtr->RenderUI();
+		}
 		//TODO: Vec4
 		//TODO: arrays,maps of properties
 	}
@@ -94,11 +100,16 @@ public:
 	{	
 		if (ImGui::TreeNode(GetName().c_str()))
 		{
-			for (auto& Property : Properties)
-			{
-				Property->RenderUI();
-			}
+			RenderChildren();
 			ImGui::TreePop();
+		}
+	}
+
+	virtual inline void RenderChildren()
+	{
+		for (auto& Property : Properties)
+		{
+			Property->RenderUI();
 		}
 	}
 
@@ -106,7 +117,6 @@ public:
 	inline void AddProperty(std::string& Name, T* Data)
 	{
 		AbstractProperty* NewProperty = new Property<T>(Name, Data);
-		//std::cout << typeid(Data).hash_code() << std::endl;
 		Properties.push_back(std::shared_ptr<AbstractProperty>(NewProperty));
 	}
 
@@ -114,5 +124,37 @@ public:
 
 	std::vector<std::shared_ptr<AbstractProperty>> Properties;
 
+};
+
+/** ImGui Property Editor Window
+*   Renders a currently selected property into the properties window
+*   The selected TopLevel aggregate property will not have a tree node, but inner aggregate properties will
+*/
+struct PropertyWindow
+{
+	AggregateProperty* Selected = nullptr;
+	bool bOpen = true;
+
+	void Render()
+	{
+		if (bOpen)
+		{
+			std::string Title("Properties: ");
+
+			if (Selected != nullptr)
+			{
+				Title += Selected->Name;
+			}
+
+			ImGui::Begin(Title.c_str());
+
+			if (Selected != nullptr)
+			{
+				Selected->RenderChildren();
+			}
+
+			ImGui::End();
+		}
+	}
 };
 
