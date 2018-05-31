@@ -80,10 +80,10 @@ public:
 	ImGuizmo::MODE mCurrentGizmoMode = ImGuizmo::WORLD;
 
 	float GizmoTestMatrix[16] =
-	{ 1.f, 0.f, 0.f, 0.f,
+	{	1.f, 0.f, 0.f, 0.f,
 		0.f, 1.f, 0.f, 0.f,
 		0.f, 0.f, 1.f, 0.f,
-		0.f, 0.f, 0.f, 1.f };
+		0.f, 0.f, 0.f, 1.f	};
 
 	//PBR/ImGUI Variables
 	ofFloatColor BaseColor;

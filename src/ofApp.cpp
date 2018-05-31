@@ -233,12 +233,15 @@ void ofApp::draw() {
 
 		AggregateProperty AggProp(std::string("AggregateProperty"));
 
+		static std::string TestString("Test String");
+
 		AggProp.AddProperty(std::string("Enable Post-Processing"), &enable_post_process);
 		AggProp.AddProperty(std::string("Color"), &BaseColor);
 		AggProp.AddProperty(std::string("Metallic"), &Metallic);
 		AggProp.AddProperty(std::string("Roughness"), &Roughness);
 		AggProp.AddProperty(std::string("AirShipsX"), &airships_x);
 		AggProp.AddProperty(std::string("AirShipsZ"), &airships_z);
+		AggProp.AddProperty(std::string("Test String"), &TestString);
 
 		//TODO: Prevent infinite recursion?
 		AggregateProperty InnerAggregate(std::string("InnerAggregate"));

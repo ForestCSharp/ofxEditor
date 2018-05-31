@@ -23,6 +23,9 @@ public:
 	std::string Name;
 };
 
+//TODO: Numeric Range : Templated Helper Struct? Empty for most types, but float / int gets two values?
+//TODO: Add Property With Range
+
 template <typename T>
 class Property : public AbstractProperty
 {
@@ -33,51 +36,8 @@ public:
 	//TODO: Break these out into free template functions (w/ specialization), default does nothing
 	virtual inline void RenderUI() override
 	{
-		const std::type_info& TypeID = typeid(*Value);
+		//Implementations in Template Specializations
 
-		if (TypeID == typeid(bool))
-		{
-			ImGui::Checkbox(GetName().c_str(), (bool*)Value);
-		}
-		else if (TypeID == typeid(int))
-		{
-			//TODO: Range
-			ImGui::SliderInt(GetName().c_str(), (int*)Value, 0, 100);
-		}
-		else if (TypeID == typeid(float))
-		{
-			//TODO: Range
-			ImGui::SliderFloat(GetName().c_str(), (float*)Value, 0.0f, 1.0f);
-		}
-		else if (TypeID == typeid(std::string))
-		{
-			//Copy/Paste broken
-
-			std::string* StringPtr = (std::string*)Value;
-			std::vector<char> CharVec(StringPtr->c_str(), StringPtr->c_str() + StringPtr->size() + 1);
-			
-			//TODO: user-set string size limit
-			CharVec.resize(256, '\0');
-
-			ImGui::InputText(GetName().c_str(), CharVec.data(), CharVec.size());
-
-			*StringPtr = CharVec.data();
-		}
-		else if (TypeID == typeid(ofVec3f))
-		{
-			//TODO: Vector3
-			ImGui::DragFloat3(GetName().c_str(), ((ofVec3f*)Value)->getPtr());
-		}
-		else if (TypeID == typeid(ofFloatColor))
-		{
-			ofFloatColor* FloatColorPtr = (ofFloatColor*)Value;
-			ImGui::ColorEdit4(GetName().c_str(), FloatColorPtr->v);
-		}
-		else if (TypeID == typeid(AggregateProperty))
-		{
-			AggregateProperty* AggregatePtr = (AggregateProperty*)Value;
-			AggregatePtr->RenderUI();
-		}
 		//TODO: Vec4
 		//TODO: arrays,maps of properties
 	}
@@ -89,6 +49,50 @@ public:
 
 	T* Value = nullptr;
 };
+
+template<>
+inline void Property<float>::RenderUI()
+{
+	std::cout << "FLOAT" << std::endl;
+	ImGui::SliderFloat(GetName().c_str(), Value, 0.0f, 1.0f);
+}
+
+template<>
+inline void Property<int>::RenderUI()
+{
+	ImGui::SliderInt(GetName().c_str(), Value, 0, 100);
+}
+
+template<>
+inline void Property<bool>::RenderUI()
+{
+	ImGui::Checkbox(GetName().c_str(), Value);
+}
+
+template<>
+inline void Property<std::string>::RenderUI()
+{
+	std::vector<char> CharVec(Value->c_str(), Value->c_str() + Value->size() + 1);
+
+	//TODO: user-set string size limit
+	CharVec.resize(256, '\0');
+
+	ImGui::InputText(GetName().c_str(), CharVec.data(), CharVec.size());
+
+	*Value = CharVec.data();
+}
+
+template<>
+inline void Property<ofVec3f>::RenderUI()
+{
+	ImGui::DragFloat3(GetName().c_str(), Value->getPtr());
+}
+
+template<>
+inline void Property<ofFloatColor>::RenderUI()
+{
+	ImGui::ColorEdit4(GetName().c_str(), Value->v);
+}
 
 class AggregateProperty : public Property<AggregateProperty>
 {
@@ -125,6 +129,12 @@ public:
 	std::vector<std::shared_ptr<AbstractProperty>> Properties;
 
 };
+
+template<>
+inline void Property<AggregateProperty>::RenderUI()
+{
+	Value->RenderUI();
+}
 
 /** ImGui Property Editor Window
 *   Renders a currently selected property into the properties window
