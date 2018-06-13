@@ -64,6 +64,25 @@ void ofApp::setup()
 	Airship.loadModel("LunaMoth.obj");
 	Airship.disableMaterials();
 
+	AnimMesh.loadModel("Lizard.fbx", false);
+	//AnimMesh.loadModel("dwarf.x", false);
+	AnimMesh.disableMaterials();
+	AnimMesh.setLoopStateForAllAnimations(OF_LOOP_NORMAL);
+	AnimMesh.playAllAnimations();
+	AnimMesh.setPausedForAllAnimations(false);
+
+	RootNode.setScale(500, 500, 500);
+
+	static ofMesh MyMesh = Airship.getMesh(0);
+	static ofMesh MyMesh2 = Airship.getMesh(1);
+
+	static ofxGameMesh MyNode(MyMesh);
+	static ofxGameMesh MyNode2(MyMesh2);
+
+	MyNode.setParent(RootNode);
+	MyNode.setScale(4, 4, 4);
+	MyNode2.setParent(MyNode);
+
 	EditorCam.setTarget(ofVec3f(0, 0, 0));
 
 	//ofxBullet Testing 
@@ -174,6 +193,8 @@ void ofApp::update() {
 	BulletBox.applyCentralForce(ofVec3f(0, -30, 0));
 	BulletBox.applyTorque(ofVec3f(0, 0, -100.0f));
 	BulletWorld.update();
+
+	
 }
 
 float airships_x = 10;
@@ -299,6 +320,7 @@ void ofApp::draw() {
 }
 
 void ofApp::renderScene() {
+
 	ofEnableDepthTest();
 	pbr.begin(&EditorCam);
 
@@ -308,19 +330,39 @@ void ofApp::renderScene() {
 
 	material.begin(&pbr);
 
-	ofPushMatrix();
-	ofMultMatrix(GizmoTestMatrix);
-	for (int i = 0; i < airships_x; ++i)
+	ofMatrix4x4 GizmoMatrix(GizmoTestMatrix);
+
+	//Testing Animation
+	AnimPos += 0.01f;
+	if (AnimPos > 1.0f)
 	{
-		for (int j = 0; j < airships_z; ++j)
-		{
-			ofPushMatrix();
-			ofTranslate(ofPoint(650.0f * j, 0.0f, 400.0f * i));
-			Airship.drawFaces();
-			ofPopMatrix();
-		}
+		AnimPos = 0.0f;
 	}
+	AnimMesh.setPositionForAllAnimations(AnimPos);
+	AnimMesh.update();
+	ofPushMatrix();
+	ofMultMatrix(GizmoMatrix);
+	ofEnableSeparateSpecularLight();
+	AnimMesh.drawFaces();
+	ofDisableSeparateSpecularLight();
 	ofPopMatrix();
+	
+	//RootNode.setTransformMatrix(GizmoMatrix);
+	//RootNode.renderChildren();
+
+	//ofPushMatrix();
+	//ofMultMatrix(GizmoTestMatrix);
+	//for (int i = 0; i < airships_x; ++i)
+	//{
+	//	for (int j = 0; j < airships_z; ++j)
+	//	{
+	//		ofPushMatrix();
+	//		ofTranslate(ofPoint(650.0f * j, 0.0f, 400.0f * i));
+	//		Airship.drawFaces();
+	//		ofPopMatrix();
+	//	}
+	//}
+	//ofPopMatrix();
 
 	//Testing ofxBullet Drawing
 	ofPushMatrix();

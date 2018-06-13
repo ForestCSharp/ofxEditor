@@ -13,8 +13,46 @@
 
 #include "PostProcessEffect.hpp"
 
-
 #include "PropertySystem.hpp"
+
+//Note: Had to Make "children" public in ofNode.h
+class ofxGameNode : public ofNode 
+{
+public:
+
+	virtual void renderChildren()
+	{
+		for (ofNode* child : children)
+		{
+			child->draw();
+
+			//TODO: Handle this dynamic_cast elsewhere (perhaps when adding nodes)
+			ofxGameNode* gameChild = dynamic_cast<ofxGameNode*>(child);
+			if (gameChild != nullptr)
+			{
+				//Need to render children outside of draw function so they don't get double matrix updates
+				gameChild->renderChildren();
+			}
+		}
+	}
+}; //TODO: Inherit from this for all nodes, so they also render their children
+
+class ofxGameMesh : public ofxGameNode 
+{
+public:
+
+	ofxGameMesh(ofMesh& InMesh)
+	{
+		Mesh = std::move(InMesh);
+	}
+
+	virtual void customDraw() override
+	{
+		Mesh.draw();
+	}
+
+	ofMesh Mesh;
+};
 
 class ofApp : public ofBaseApp {
 public:
@@ -37,6 +75,9 @@ public:
 	void dragEvent(ofDragInfo dragInfo);
 	void gotMessage(ofMessage msg);
 	void mouseScrolled(float x, float y);
+
+	//Scene Graph
+	ofxGameNode RootNode;
 
 	//ImGUI
 	ofxImGui::Gui imgui;
@@ -92,6 +133,10 @@ public:
 
 	//Airship
 	ofxAssimpModelLoader Airship;
+
+	//Animated Lizard
+	ofxAssimpModelLoader AnimMesh;
+	float AnimPos = 0;
 
 	//Property Window
 	PropertyWindow PropWindow;

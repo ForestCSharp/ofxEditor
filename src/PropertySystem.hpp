@@ -53,7 +53,6 @@ public:
 template<>
 inline void Property<float>::RenderUI()
 {
-	std::cout << "FLOAT" << std::endl;
 	ImGui::SliderFloat(GetName().c_str(), Value, 0.0f, 1.0f);
 }
 
