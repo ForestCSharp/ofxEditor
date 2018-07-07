@@ -8,51 +8,13 @@
 
 #include "ofxPBR.h"
 #include "ofxAssimpModelLoader.h"
-#include "ofxEditorCam.h"
 #include "ofxBullet.h"
 
+#include "EditorCam.h"
 #include "PostProcessEffect.hpp"
-
 #include "PropertySystem.hpp"
+#include "GameNode.hpp"
 
-//Note: Had to Make "children" public in ofNode.h
-class ofxGameNode : public ofNode 
-{
-public:
-
-	virtual void renderChildren()
-	{
-		for (ofNode* child : children)
-		{
-			child->draw();
-
-			//TODO: Handle this dynamic_cast elsewhere (perhaps when adding nodes)
-			ofxGameNode* gameChild = dynamic_cast<ofxGameNode*>(child);
-			if (gameChild != nullptr)
-			{
-				//Need to render children outside of draw function so they don't get double matrix updates
-				gameChild->renderChildren();
-			}
-		}
-	}
-}; //TODO: Inherit from this for all nodes, so they also render their children
-
-class ofxGameMesh : public ofxGameNode 
-{
-public:
-
-	ofxGameMesh(ofMesh& InMesh)
-	{
-		Mesh = std::move(InMesh);
-	}
-
-	virtual void customDraw() override
-	{
-		Mesh.draw();
-	}
-
-	ofMesh Mesh;
-};
 
 class ofApp : public ofBaseApp {
 public:
@@ -78,6 +40,10 @@ public:
 
 	//Scene Graph
 	ofxGameNode RootNode;
+
+	//TODO: Whenever something gets added / removed to root node, update these
+	std::set<ofxGameMesh*> Meshes;
+	std::set<ofxGameLight*> Lights;
 
 	//ImGUI
 	ofxImGui::Gui imgui;
@@ -134,7 +100,7 @@ public:
 	//Airship
 	ofxAssimpModelLoader Airship;
 
-	//Animated Lizard
+	//Animated (on CPU) Model
 	ofxAssimpModelLoader AnimMesh;
 	float AnimPos = 0;
 

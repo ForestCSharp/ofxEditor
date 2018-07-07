@@ -172,9 +172,10 @@
     <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\DeferredRenderer.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\ofApp.cpp" />
-    <ClCompile Include="src\ofxEditorCam.cpp" />
+    <ClCompile Include="src\EditorCam.cpp" />
     <ClCompile Include="..\..\..\addons\ofxAssimpModelLoader\src\ofxAssimpAnimation.cpp" />
     <ClCompile Include="..\..\..\addons\ofxAssimpModelLoader\src\ofxAssimpMeshHelper.cpp" />
     <ClCompile Include="..\..\..\addons\ofxAssimpModelLoader\src\ofxAssimpModelLoader.cpp" />
@@ -358,9 +359,11 @@
     <ClCompile Include="..\..\..\addons\ofxPBR\src\ofxPBRShadow.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\DeferredRenderer.h" />
     <ClInclude Include="src\ofApp.h" />
     <ClInclude Include="src\ImGuiRadialMenu.hpp" />
-    <ClInclude Include="src\ofxEditorCam.h" />
+    <ClInclude Include="src\EditorCam.h" />
+    <ClInclude Include="src\GameNode.hpp" />
     <ClInclude Include="src\PostProcessEffect.hpp" />
     <ClInclude Include="src\PropertySystem.hpp" />
     <ClInclude Include="..\..\..\addons\ofxAssimpModelLoader\src\ofxAssimpAnimation.h" />

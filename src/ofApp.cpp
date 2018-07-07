@@ -1,6 +1,7 @@
 #include "ofApp.h"
 
 #include "ImGuiRadialMenu.hpp"
+#include "DeferredRenderer.h"
 
 ofApp* ofApp::AppPtr = nullptr;
 
@@ -10,6 +11,8 @@ void ofApp::setup()
 	AppPtr = this;
 
 	ofSetLogLevel(OF_LOG_VERBOSE);
+	ofDisableArbTex();
+
 
 	//required call
 	imgui.setup();
@@ -24,7 +27,7 @@ void ofApp::setup()
 	//imageButtonID = gui.loadImage("of.png");
 
 	//can also use ofPixels in same manner
-	ofLoadImage(pixelsButtonSource, "of_upside_down.png");
+	ofLoadImage(pixelsButtonSource, "test.png");
 	pixelsButtonID = imgui.loadPixels(pixelsButtonSource);
 
 	//and alt method
@@ -38,10 +41,7 @@ void ofApp::setup()
 
 	ofLogVerbose() << "textureSourceID: " << textureSourceID;
 
-	//PBR Setup
-	ofDisableArbTex();
-
-	EditorCam.setupPerspective(false, 60, 1, 120000);
+	EditorCam.setupPerspective(false, 60, 1, 240000);
 
 	cubeMap.load("Barce_Rooftop_C_3k.jpg", 1024, true, "filteredMapCache");
 	pbr.setup(2048);
@@ -73,15 +73,51 @@ void ofApp::setup()
 
 	RootNode.setScale(500, 500, 500);
 
-	static ofMesh MyMesh = Airship.getMesh(0);
-	static ofMesh MyMesh2 = Airship.getMesh(1);
+	ofMesh* MyMesh = new ofMesh( Airship.getMesh( 0 ) );
+	ofMesh* MyMesh2 = new ofMesh( Airship.getMesh( 1 ) );
 
-	static ofxGameMesh MyNode(MyMesh);
-	static ofxGameMesh MyNode2(MyMesh2);
+	ofxGameMesh* MyNode = new ofxGameMesh( *MyMesh );
+	ofxGameMesh* MyNode2 = new ofxGameMesh( *MyMesh2 );
 
-	MyNode.setParent(RootNode);
-	MyNode.setScale(4, 4, 4);
-	MyNode2.setParent(MyNode);
+	MyNode->setParent( RootNode );
+	MyNode->setScale( 4, 4, 4 );
+	MyNode->AlbedoValue = ofFloatColor( 0.0, 1.0, 0.5, 1.0 );
+	MyNode->MetallicValue = 1.0f;
+	MyNode->RoughnessValue = 0.0f;
+
+
+	MyNode2->setParent( *MyNode );
+	MyNode2->AlbedoValue = ofFloatColor( 1.0, 0.5, 0.0, 1.0 );
+	MyNode2->MetallicValue = 0.0f;
+	MyNode2->RoughnessValue = 1.0f;
+
+	ofPixels Pixels;
+
+	ofLoadImage( Pixels, "MetalGrid/Albedo.png" );
+
+	MyNode->AlbedoTexture.allocate( Pixels );
+	MyNode2->AlbedoTexture.allocate( Pixels );
+
+	ofLoadImage( Pixels, "MetalGrid/Roughness.png" );
+
+	MyNode->RoughnessTexture.allocate( Pixels );
+	MyNode2->RoughnessTexture.allocate( Pixels );
+
+	ofLoadImage( Pixels, "MetalGrid/Metallic.png" );
+
+	MyNode->MetallicTexture.allocate( Pixels );
+	MyNode2->MetallicTexture.allocate( Pixels );
+
+	ofLoadImage( Pixels, "MetalGrid/Normal.png" );
+
+	MyNode->NormalTexture.allocate( Pixels );
+	MyNode2->NormalTexture.allocate( Pixels );
+
+	Meshes.insert( MyNode );
+	Meshes.insert( MyNode2 );
+
+	//ofBoxPrimitive* BoxNode = new ofBoxPrimitive();
+	//BoxNode->setParent(RootNode);
 
 	EditorCam.setTarget(ofVec3f(0, 0, 0));
 
@@ -186,6 +222,8 @@ void ofApp::setup()
 	ScenePassFBO.allocate(ofGetWidth(), ofGetHeight(), GL_RGBA);
 	PostProcessEffect.SetSize(ofGetWidth(), ofGetHeight());
 	PostProcessEffect.SetFragmentShader(oss.str());
+
+	ofxDeferredRenderer::Setup(ofGetWidth(), ofGetHeight());
 }
 
 //--------------------------------------------------------------
@@ -193,8 +231,6 @@ void ofApp::update() {
 	BulletBox.applyCentralForce(ofVec3f(0, -30, 0));
 	BulletBox.applyTorque(ofVec3f(0, 0, -100.0f));
 	BulletWorld.update();
-
-	
 }
 
 float airships_x = 10;
@@ -205,40 +241,43 @@ bool enable_post_process = true;
 //--------------------------------------------------------------
 void ofApp::draw() {
 
-	//Render Scene into FBO
-	ScenePassFBO.bind();
+	//Deferred Renderer Test
+	ofxDeferredRenderer::RenderScene(Meshes, Lights, EditorCam);
 
-	ofClear(255, 255, 255);
+	//for (auto& Mesh : Meshes)
+	//	Mesh->AlbedoTexture.draw( 0, 0 );
+
+	//Render Scene into FBO
+	//ScenePassFBO.bind();
+
+	//ofClear(255, 255, 255);
 
 	//PBR
-	pbr.makeDepthMap(scene);
-	EditorCam.begin();
-	pbr.drawEnvironment(&EditorCam);
+	//pbr.makeDepthMap(scene);
+	//EditorCam.begin();
+	//pbr.drawEnvironment(&EditorCam);
 
-	scene();
+	//scene();
 
 	//Physics Debug
-	//FIXME: Broken
-	//ofSetLineWidth(1.f);
-	//ofSetColor(255, 0, 200);
 	//BulletWorld.drawDebug();
 
-	EditorCam.end();
+	//EditorCam.end();
 
-	ScenePassFBO.unbind();
+	//ScenePassFBO.unbind();
 
 	//Can chain post process effects here
-	auto FXAA_Result = PostProcessEffect.Process(ScenePassFBO);
+	//auto FXAA_Result = PostProcessEffect.Process(ScenePassFBO);
 
-	if (enable_post_process)
-	{
-		PostProcessEffect.Draw();
-	}
-	else
-	{
-		ScenePassFBO.getTextureReference().getTextureData().bFlipTexture = true;
-		ScenePassFBO.draw(0, 0);
-	}
+	//if (enable_post_process)
+	//{
+	//	PostProcessEffect.Draw();
+	//}
+	//else
+	//{
+	//	ScenePassFBO.getTextureReference().getTextureData().bFlipTexture = true;
+	//	ScenePassFBO.draw(0, 0);
+	//}
 
 	//required to call this at beginning
 	imgui.begin();
@@ -322,6 +361,7 @@ void ofApp::draw() {
 void ofApp::renderScene() {
 
 	ofEnableDepthTest();
+
 	pbr.begin(&EditorCam);
 
 	material.baseColor = BaseColor;
@@ -331,38 +371,6 @@ void ofApp::renderScene() {
 	material.begin(&pbr);
 
 	ofMatrix4x4 GizmoMatrix(GizmoTestMatrix);
-
-	//Testing Animation
-	AnimPos += 0.01f;
-	if (AnimPos > 1.0f)
-	{
-		AnimPos = 0.0f;
-	}
-	AnimMesh.setPositionForAllAnimations(AnimPos);
-	AnimMesh.update();
-	ofPushMatrix();
-	ofMultMatrix(GizmoMatrix);
-	ofEnableSeparateSpecularLight();
-	AnimMesh.drawFaces();
-	ofDisableSeparateSpecularLight();
-	ofPopMatrix();
-	
-	//RootNode.setTransformMatrix(GizmoMatrix);
-	//RootNode.renderChildren();
-
-	//ofPushMatrix();
-	//ofMultMatrix(GizmoTestMatrix);
-	//for (int i = 0; i < airships_x; ++i)
-	//{
-	//	for (int j = 0; j < airships_z; ++j)
-	//	{
-	//		ofPushMatrix();
-	//		ofTranslate(ofPoint(650.0f * j, 0.0f, 400.0f * i));
-	//		Airship.drawFaces();
-	//		ofPopMatrix();
-	//	}
-	//}
-	//ofPopMatrix();
 
 	//Testing ofxBullet Drawing
 	ofPushMatrix();
@@ -464,6 +472,8 @@ void ofApp::mouseReleased(int x, int y, int button) {
 void ofApp::windowResized(int w, int h) {
 	ScenePassFBO.allocate(w, h);
 	PostProcessEffect.SetSize(w, h);
+
+	ofxDeferredRenderer::Setup(w, h);
 }
 
 //--------------------------------------------------------------
