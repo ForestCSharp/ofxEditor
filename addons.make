@@ -1,4 +1,3 @@
 ofxAssimpModelLoader
 ofxBullet
 ofxImGui
-ofxPBR

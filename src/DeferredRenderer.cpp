@@ -2,6 +2,8 @@
 
 #include "ofFbo.h"
 #include "ofShader.h"
+#include "ofGraphics.h"
+#include <string>
 
 #define STRINGIFY(x) #x
 
@@ -9,6 +11,7 @@ namespace ofxDeferredRenderer
 {
 	ofFbo GBufferFBO;
 	ofShader GBufferShader;
+	ofShader LightingShader;
 
 
 	void Setup(int Width, int Height)
@@ -27,18 +30,18 @@ namespace ofxDeferredRenderer
 
 		GBufferFBO.allocate(GBufferSettings);
 
-		string GBufferVertShader = STRINGIFY(
+		std::string GBufferVertShader = STRINGIFY(
 			#version 400 \n
 
+			uniform mat4 modelMatrix; //oF Default
 			uniform mat4 modelViewMatrix; // oF Default
 			uniform mat4 modelViewProjectionMatrix; // oF Default
 
 			layout (location = 0) in vec4 position; //oF Default
-			layout (location = 2) in vec3 normal; // oF Default
-			layout (location = 3) in vec2 texcoord; // oF Default
+			layout (location = 2) in vec3 normal; //oF Default
+			layout (location = 3) in vec2 texcoord; //oF Default
 
 			//Custom Uniforms 
-			uniform mat4 modelMatrix; 
 			uniform float farClip;
 			uniform float nearClip;
 
@@ -61,7 +64,7 @@ namespace ofxDeferredRenderer
 			}
 		);
 
-		string GBufferFragShader = STRINGIFY(
+		std::string GBufferFragShader = STRINGIFY(
 			#version 400 \n
 
 			in vec4 vWorldPosition;
@@ -104,6 +107,49 @@ namespace ofxDeferredRenderer
 		GBufferShader.setupShaderFromSource(GL_FRAGMENT_SHADER, GBufferFragShader);
 		GBufferShader.linkProgram();
 
+		//Lighting Shader
+		
+		std::string LightingFragShader = STRINGIFY(
+			#version 400 \n
+
+			#define MAX_NUMBER_OF_LIGHTS 10 \n
+
+			struct Light {
+				vec3 Position;
+				vec3 Color;
+				float Intensity;
+			};
+
+			Light Lights[MAX_NUMBER_OF_LIGHTS];
+
+			uniform vec2 resolution;
+
+			uniform sampler2D AlbedoTexture;
+			uniform sampler2D MetallicRoughnessAO; //TODO: Store Specular and AO  in z,w-channels respectively
+			uniform sampler2D WorldPosition;
+			uniform sampler2D WorldNormal;
+
+			layout( location = 0 ) out vec4 Color;
+
+			void main() {
+
+				Lights[0].Position = vec3( 1, 0, 0 );
+				Lights[0].Color = vec3( 1, 1, 1 );
+				Lights[0].Intensity = 2.0f;
+
+				vec3 Position = texture( WorldPosition, gl_FragCoord.xy  * resolution ).xyz;
+				vec3 Normal = texture( WorldNormal, gl_FragCoord.xy  * resolution ).xyz;
+
+				vec3 LightVector = Lights[0].Position - Position;
+				float LightDistance = length( LightVector );
+
+				Color = vec4( Position / 3.0f , 1.0f );
+				//Color = texture( AlbedoTexture, gl_FragCoord.xy  * resolution );
+			}
+		);
+		
+		LightingShader.setupShaderFromSource( GL_FRAGMENT_SHADER, LightingFragShader );
+		LightingShader.linkProgram();
 	}
 
 	void RenderScene( std::set<ofxGameMesh*> Meshes, std::set<ofxGameLight*> Lights, ofCamera& Camera )
@@ -135,9 +181,6 @@ namespace ofxDeferredRenderer
 
 		for (auto& Mesh : Meshes)
 		{
-			//TODO: (Note from ofNode.h: Optimize "getGlobalTransformMatrix())
-			GBufferShader.setUniformMatrix4f( "modelMatrix", Mesh->getGlobalTransformMatrix() );
-
 			//Todo: Have Shader Manage texture bindings (each "begin" resets to 0, and then just increment)
 
 			GBufferShader.setUniformTexture( "AlbedoTexture", Mesh->AlbedoTexture, 0 );
@@ -160,18 +203,28 @@ namespace ofxDeferredRenderer
 		ofDisableDepthTest();
 		GBufferFBO.unbind();
 
-		//Testing Progress / Final Present
-
 		//Flip our textures
-		for (int i = 0; i < 4; ++i)
+		for ( int i = 0; i < 4; ++i )
 		{
-			GBufferFBO.getTexture(i).getTextureData().bFlipTexture = true;
+			GBufferFBO.getTexture( i ).getTextureData().bFlipTexture = true;
 		}
 
-		GBufferFBO.draw(0, 0);
+		//Lighting Pass
+		LightingShader.begin();
+		LightingShader.setUniform2f( "resolution", 1.f / GBufferFBO.getWidth(), 1.f / GBufferFBO.getHeight() );
+		LightingShader.setUniformTexture( "AlbedoTexture", GBufferFBO.getTexture( 0 ), 0 );
+		LightingShader.setUniformTexture( "MetallicRoughnessAO", GBufferFBO.getTexture( 1 ), 1 );
+		LightingShader.setUniformTexture( "WorldPosition", GBufferFBO.getTexture( 2 ), 2 );
+		LightingShader.setUniformTexture( "WorldNormal", GBufferFBO.getTexture( 3 ), 3 );
+		ofDrawRectangle( -ofGetWidth() / 2, -ofGetHeight() / 2, ofGetWidth(), ofGetHeight() );
+		LightingShader.end();
 
-		float w2 = ofGetViewportWidth();
-		float h2 = ofGetViewportHeight();
+		//Testing Progress / Final Present
+
+		//GBufferFBO.draw(0, 0);
+
+		float w2 = ofGetWidth();
+		float h2 = ofGetHeight();
 		float ws = w2 * 0.25;
 		float hs = h2 * 0.25;
 

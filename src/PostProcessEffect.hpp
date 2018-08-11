@@ -52,7 +52,7 @@ public:
 
 	void Draw()
 	{
-		PostProcessFbo.getTextureReference().getTextureData().bFlipTexture = true;
+		PostProcessFbo.getTexture().getTextureData().bFlipTexture = true;
 		PostProcessFbo.draw(0, 0);
 	}
 

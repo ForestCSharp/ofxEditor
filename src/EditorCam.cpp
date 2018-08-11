@@ -24,9 +24,9 @@ ofxEditorCam::~ofxEditorCam() {
 //----------------------------------------
 void ofxEditorCam::update(ofEventArgs & args) {
 	
-	viewport = getViewport(this->viewport);
+	viewport = getViewport();
 
-	ofVec2f MousePosition;
+	glm::vec2 MousePosition;
 	ofApp* AppPtr = ofApp::GetAppPtr();
 	if (AppPtr != nullptr)
 	{
@@ -60,8 +60,8 @@ void ofxEditorCam::update(ofEventArgs & args) {
 
 void ofxEditorCam::UpdatePan(const float& Delta)
 {
-	float SquareDistanceToTarget = getPosition().distance(target.getPosition());
-	ofVec3f PanOffset = ofVec3f(getXAxis() * PanSensitivity * -MouseDelta.x) + ofVec3f(getYAxis() * PanSensitivity * MouseDelta.y);
+	float SquareDistanceToTarget = glm::distance( getPosition(), target.getPosition() );
+	glm::vec3 PanOffset = glm::vec3(getXAxis() * PanSensitivity * -MouseDelta.x) + glm::vec3(getYAxis() * PanSensitivity * MouseDelta.y);
 	PanOffset *= SquareDistanceToTarget;
 	setPosition(prevPosition + PanOffset * Delta);
 }
@@ -85,12 +85,11 @@ void ofxEditorCam::updateRotation(const float& Delta) {
 	float zRot = 0;
 
 	//Turntable Rotation Axis
-	ofVec3f YRotationAxis = ofVec3f(0, 1, 0);
+	glm::vec3 YRotationAxis( 0, 1, 0 );
 
-	curRot = ofQuaternion(xRot, getXAxis(), yRot, YRotationAxis, zRot, getZAxis());
-	setPosition((prevPosition - target.getGlobalPosition())*curRot + target.getGlobalPosition());
-	setOrientation(prevRot * curRot);
-
+	curRot = glm::angleAxis( yRot, YRotationAxis ) * glm::angleAxis( xRot, getXAxis() );
+	setOrientation( curRot * prevRot );
+	setPosition( curRot * ( prevPosition - target.getGlobalPosition() ) + target.getGlobalPosition() );
 }
 
 //----------------------------------------
@@ -98,7 +97,7 @@ void ofxEditorCam::begin(ofRectangle _viewport) {
 	if (!bEventsSet) {
 		setEvents(ofEvents());
 	}
-	viewport = getViewport(_viewport);
+	viewport = getViewport();
 	ofCamera::begin(viewport);
 }
 
@@ -120,7 +119,7 @@ void ofxEditorCam::reset() {
 }
 
 //----------------------------------------
-void ofxEditorCam::setTarget(const ofVec3f& targetPoint) {
+void ofxEditorCam::setTarget(const glm::vec3& targetPoint) {
 	target.setPosition(targetPoint);
 	lookAt(target);
 }
@@ -182,17 +181,15 @@ bool ofxEditorCam::getMouseInputEnabled()
 }
 
 void ofxEditorCam::mousePressed(ofMouseEventArgs & mouse) {
-	ofRectangle viewport = getViewport(this->viewport);
+	ofRectangle viewport = getViewport();
+
+	std::cout << "Mouse Pressed" << std::endl;
 	
 	ofApp* AppPtr = ofApp::GetAppPtr();
 	assert(AppPtr != nullptr);
 
 	if (viewport.inside(mouse.x, mouse.y)) 
 	{
-		prevAxisX = getXAxis();
-		prevAxisY = getYAxis();
-		prevAxisZ = getZAxis();
-
 		if (mouse.button == OF_MOUSE_BUTTON_LEFT && AppPtr->IsKeyPressed(OF_KEY_ALT) && AppPtr->IsKeyPressed(OF_KEY_SHIFT))
 		{
 			bDoPan = true;
@@ -209,9 +206,9 @@ void ofxEditorCam::mousePressed(ofMouseEventArgs & mouse) {
 }
 
 void ofxEditorCam::mouseReleased(ofMouseEventArgs & mouse) {
-	ofRectangle viewport = getViewport(this->viewport);
+	ofRectangle viewport = getViewport();
 
-	ofVec2f center(viewport.width / 2, viewport.height / 2);
+	glm::vec2 center(viewport.width / 2, viewport.height / 2);
 	int vFlip;
 	if (isVFlipped()) {
 		vFlip = -1;
@@ -228,10 +225,9 @@ void ofxEditorCam::mouseReleased(ofMouseEventArgs & mouse) {
 }
 
 void ofxEditorCam::mouseScrolled(ofMouseEventArgs & mouse) {
-	ofRectangle viewport = getViewport(this->viewport);
+	ofRectangle viewport = getViewport();
 	prevPosition = ofCamera::getGlobalPosition();
-	prevAxisZ = getZAxis();
 	
-	float SquareDistanceToTarget = getPosition().distance(target.getPosition());
-	setPosition(getPosition() + getZAxis() * -mouse.scrollY * ZoomSensitivity * SquareDistanceToTarget);
+	float SquareDistanceToTarget = glm::distance( getPosition(), target.getPosition() );
+	setPosition( getPosition() + getZAxis() * -mouse.scrollY * ZoomSensitivity * SquareDistanceToTarget );
 }

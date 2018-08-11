@@ -3,6 +3,7 @@
 #include "ofNode.h"
 #include "ofLight.h"
 #include "ofTexture.h"
+#include "ofMesh.h"
 
 //Note: Had to Make "children" public in ofNode.h
 class ofxGameNode : public ofNode
@@ -41,8 +42,6 @@ public:
 	}
 
 	ofMesh Mesh;
-	
-
 
 	//TODO: Move to Material interface (Material owns its GBuffer Shader and binds it / sets up its uniforms)
 	ofTexture AlbedoTexture;

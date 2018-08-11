@@ -3,6 +3,8 @@
 #include "ImGuiRadialMenu.hpp"
 #include "DeferredRenderer.h"
 
+#define STRINGIFY(x) #x
+
 ofApp* ofApp::AppPtr = nullptr;
 
 //--------------------------------------------------------------
@@ -41,25 +43,7 @@ void ofApp::setup()
 
 	ofLogVerbose() << "textureSourceID: " << textureSourceID;
 
-	EditorCam.setupPerspective(false, 60, 1, 240000);
-
-	cubeMap.load("Barce_Rooftop_C_3k.jpg", 1024, true, "filteredMapCache");
-	pbr.setup(2048);
-	pbr.setCubeMap(&cubeMap);
-
-	scene = bind(&ofApp::renderScene, this);
-
-	//TODO: Pretty sure point light shadows aren't omnidirectional at the moment
-	light.setLightType(LightType_Directional);
-	light.setPosition(-1500, 1000, 1500);
-	light.lookAt(ofVec3f(0));
-	light.setScale(5.5);
-	
-	light.setColor(ofFloatColor(1.0));
-	light.setShadowType(ShadowType_Soft);
-	pbr.addLight(&light);
-
-	cubeMap.setEnvLevel(0.3);
+	EditorCam.setupPerspective( false, 60, 1, 240000 );
 
 	Airship.loadModel("LunaMoth.obj");
 	Airship.disableMaterials();
@@ -79,6 +63,7 @@ void ofApp::setup()
 	ofxGameMesh* MyNode = new ofxGameMesh( *MyMesh );
 	ofxGameMesh* MyNode2 = new ofxGameMesh( *MyMesh2 );
 
+	MyNode->setPosition( 5, 5, 5 );
 	MyNode->setParent( RootNode );
 	MyNode->setScale( 4, 4, 4 );
 	MyNode->AlbedoValue = ofFloatColor( 0.0, 1.0, 0.5, 1.0 );
@@ -119,7 +104,7 @@ void ofApp::setup()
 	//ofBoxPrimitive* BoxNode = new ofBoxPrimitive();
 	//BoxNode->setParent(RootNode);
 
-	EditorCam.setTarget(ofVec3f(0, 0, 0));
+	EditorCam.setTarget(glm::vec3(0, 0, 0));
 
 	//ofxBullet Testing 
 	BulletWorld.setup();
@@ -134,7 +119,7 @@ void ofApp::setup()
 	BulletGround.setProperties(.25, .95);
 	BulletGround.add();
 
-	string fragShaderSrc = STRINGIFY(
+	std::string fragShaderSrc = STRINGIFY(
 		uniform sampler2D InputTexture;
 		uniform vec2 resolution;
 
@@ -146,7 +131,7 @@ void ofApp::setup()
 		}
 	);
 
-	string fxaaShaderSrc = STRINGIFY(
+	std::string fxaaShaderSrc = STRINGIFY(
 		uniform sampler2D InputTexture;
 		uniform vec2 resolution;
 
@@ -242,28 +227,19 @@ bool enable_post_process = true;
 void ofApp::draw() {
 
 	//Deferred Renderer Test
-	ofxDeferredRenderer::RenderScene(Meshes, Lights, EditorCam);
+	//ofxDeferredRenderer::RenderScene(Meshes, Lights, EditorCam);
+
+	EditorCam.begin();
+	Airship.drawFaces();
+	ofDrawBox( glm::vec3( 0, 0, 0 ), 100 );
+	EditorCam.end();
 
 	//for (auto& Mesh : Meshes)
 	//	Mesh->AlbedoTexture.draw( 0, 0 );
 
 	//Render Scene into FBO
 	//ScenePassFBO.bind();
-
-	//ofClear(255, 255, 255);
-
-	//PBR
-	//pbr.makeDepthMap(scene);
-	//EditorCam.begin();
-	//pbr.drawEnvironment(&EditorCam);
-
-	//scene();
-
-	//Physics Debug
-	//BulletWorld.drawDebug();
-
-	//EditorCam.end();
-
+	//NOTE: This would be where normal rendering would be done now
 	//ScenePassFBO.unbind();
 
 	//Can chain post process effects here
@@ -285,7 +261,8 @@ void ofApp::draw() {
 	ImGuizmo::BeginFrame();
 	ImGuiIO& io = ImGui::GetIO();
 	ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
-	ImGuizmo::Manipulate(EditorCam.getModelViewMatrix().getPtr(), EditorCam.getProjectionMatrix().getPtr(), mCurrentGizmoOperation, mCurrentGizmoMode, GizmoTestMatrix, NULL, NULL /* Snapping */);
+
+	ImGuizmo::Manipulate(glm::value_ptr(EditorCam.getModelViewMatrix()), glm::value_ptr(EditorCam.getProjectionMatrix()), mCurrentGizmoOperation, mCurrentGizmoMode, GizmoTestMatrix, NULL, NULL /* Snapping */);
 
 	//In between gui.begin() and gui.end() you can use ImGui as you would anywhere else
 
@@ -356,40 +333,6 @@ void ofApp::draw() {
 	{
 		textureSource.draw(ofRandom(200), ofRandom(200));
 	}
-}
-
-void ofApp::renderScene() {
-
-	ofEnableDepthTest();
-
-	pbr.begin(&EditorCam);
-
-	material.baseColor = BaseColor;
-	material.roughness = Roughness;
-	material.metallic = Metallic;
-
-	material.begin(&pbr);
-
-	ofMatrix4x4 GizmoMatrix(GizmoTestMatrix);
-
-	//Testing ofxBullet Drawing
-	ofPushMatrix();
-	ofMultMatrix(BulletBox.getTransformationMatrix());
-	ofVec3f BoxSize = BulletBox.getSize();
-	ofDrawBox(ofVec3f(0,0,0), BoxSize.x, BoxSize.y, BoxSize.z);
-	ofPopMatrix();
-
-	ofPushMatrix();
-	ofMultMatrix(BulletGround.getTransformationMatrix());
-	ofVec3f GroundSize = BulletGround.getSize();
-	ofDrawBox(ofVec3f(0, 0, 0), GroundSize.x, GroundSize.y, GroundSize.z);
-	ofPopMatrix();
-
-	material.end();
-
-	pbr.end();
-
-	ofDisableDepthTest();
 }
 
 //--------------------------------------------------------------

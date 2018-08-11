@@ -2,6 +2,7 @@
 
 #include "ofCamera.h"
 #include "ofEvents.h"
+#include <glm/gtc/quaternion.hpp>
 
 class ofxEditorCam : public ofCamera {
 public:
@@ -13,7 +14,7 @@ public:
 
 	void reset();
 
-	void setTarget(const ofVec3f& target);
+	void setTarget(const glm::vec3& target);
 	void setTarget(ofNode& target);
 	ofNode& getTarget();
 
@@ -38,15 +39,15 @@ public:
 	float moveY;
 	float moveZ;
 
-	float VerticalRotationRate = 15.0f;
-	float HorizontalRotationRate = 35.0f;
+	float VerticalRotationRate = 7.0f;
+	float HorizontalRotationRate = 17.0f;
 	float PanSensitivity = 0.05f;
 	float ZoomSensitivity = 0.05f;
 
-	ofVec2f PreviousMousePosition;
+	glm::vec2 PreviousMousePosition;
 
 	//TODO: Move Mouse Delta to ofApp, note we normalized for viewport size
-	ofVec2f MouseDelta;
+	glm::vec2 MouseDelta;
 
 	void update(ofEventArgs & args);
 	void updateRotation(const float& Delta);
@@ -56,17 +57,11 @@ public:
 	void mouseReleased(ofMouseEventArgs & mouse);
 	void mouseScrolled(ofMouseEventArgs & mouse);
 
-	ofQuaternion curRot;
+	glm::quat curRot;
 
-	ofVec3f prevAxisX;
+	glm::vec3 prevPosition;
 
-	ofVec3f prevAxisY;
-
-	ofVec3f prevAxisZ;
-
-	ofVec3f prevPosition;
-
-	ofQuaternion prevRot;
+	glm::quat prevRot;
 
 	ofRectangle viewport;
 

@@ -6,7 +6,6 @@
 
 #include <map>
 
-#include "ofxPBR.h"
 #include "ofxAssimpModelLoader.h"
 #include "ofxBullet.h"
 
@@ -25,7 +24,9 @@ public:
 	void setup();
 	void update();
 	void draw();
-	void renderScene();
+
+	//FIXME? Fixes crash on window close
+	void exit() { ::exit( 0 ); }
 
 	void keyPressed(int key);
 	void keyReleased(int key);
@@ -58,14 +59,6 @@ public:
 	GLuint textureSourceID;
 
 	bool bShowPieMenu = false;
-
-	//PBR
-	function<void()> scene;
-
-	ofxPBRCubeMap cubeMap;
-	ofxPBRMaterial material;
-	ofxPBRLight light;
-	ofxPBR pbr;
 
 	//Post Processing
 	ofFbo ScenePassFBO;
